@@ -4,6 +4,8 @@ class GildedRose(object):
 
     ITEM_MAX_QUALITY = 50
     ITEM_MIN_QUALITY = 0
+    FIRST_BATCH = 10
+    SECOND_BATCH = 5
     aged_brie = "Aged Brie"
     backstage_passes = "Backstage passes to a TAFKAL80ETC concert"
     conjured = "Conjured"
@@ -34,14 +36,13 @@ class GildedRose(object):
         elif item.sell_in <= 0:
             item.quality += 2
     
-    @staticmethod
-    def __update_quality_backstage_passes(item):
+    def __update_quality_backstage_passes(self, item):
         if item.sell_in > 0:
-            if item.sell_in > 10:
+            if item.sell_in > self.FIRST_BATCH:
                 item.quality += 1
-            elif item.sell_in <= 10 and item.sell_in > 5:
+            elif item.sell_in <= self.FIRST_BATCH and item.sell_in > self.SECOND_BATCH:
                 item.quality += 2
-            elif item.sell_in <= 5:
+            elif item.sell_in <= self.SECOND_BATCH:
                 item.quality += 3
         else:
             item.quality = 0
@@ -56,16 +57,17 @@ class GildedRose(object):
     def update_quality(self):
         for item in self.items:
 
-            if item.name == self.sulfuras:
-                continue
-            elif item.name == self.aged_brie:
-                self.__update_quality_aged_brie(item)
-            elif item.name == self.backstage_passes:
-                self.__update_quality_backstage_passes(item)
-            elif item.name == self.conjured:
-                self.__update_quality_conjured(item)
-            else:
-                self.__update_quality_regular(item)
+            match item.name:
+                case self.sulfuras:
+                    continue
+                case self.aged_brie:
+                    self.__update_quality_aged_brie(item)
+                case self.backstage_passes:
+                    self.__update_quality_backstage_passes(item)
+                case self.conjured:
+                    self.__update_quality_conjured(item)
+                case _:
+                    self.__update_quality_regular(item)
             
             self.__cap_quality(item)
 
