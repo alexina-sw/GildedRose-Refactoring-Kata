@@ -2,34 +2,77 @@
 
 class GildedRose(object):
 
+    ITEM_MAX_QUALITY = 50
+    ITEM_MIN_QUALITY = 0
+    aged_brie = "Aged Brie"
+    backstage_passes = "Backstage passes to a TAFKAL80ETC concert"
+    conjured = "Conjured"
+    sulfuras = "Sulfuras, Hand of Ragnaros"
+
     def __init__(self, items):
         self.items = items
+        for item in items:
+            self.__cap_quality(item)
+
+    def __cap_quality(self, item):
+        if item.quality > self.ITEM_MAX_QUALITY:
+            item.quality = self.ITEM_MAX_QUALITY
+        elif item.quality < self.ITEM_MIN_QUALITY:
+            item.quality = self.ITEM_MIN_QUALITY
+    
+    @staticmethod
+    def __update_quality_regular(item):
+        if item.sell_in > 0:
+            item.quality -= 1
+        else:
+            item.quality -= 2
+        
+    @staticmethod
+    def __update_quality_aged_brie(item):
+        if item.sell_in > 0:
+            item.quality += 1
+        elif item.sell_in <= 0:
+            item.quality += 2
+    
+    @staticmethod
+    def __update_quality_backstage_passes(item):
+        if item.sell_in > 0:
+            if item.sell_in > 10:
+                item.quality += 1
+            elif item.sell_in <= 10 and item.sell_in > 5:
+                item.quality += 2
+            elif item.sell_in <= 5:
+                item.quality += 3
+        else:
+            item.quality = 0
+
+    @staticmethod
+    def __update_quality_conjured(item):
+        if item.sell_in > 0:
+            item.quality -= 2
+        else:
+            item.quality -= 4
 
     def update_quality(self):
         for item in self.items:
-            if item.name == "Sulfuras, Hand of Ragnaros":
-                return
-            elif item.name == "Aged Brie":
-                item.quality += 1
-                if item.sell_in < 0:
-                    item.quality += 1
-                item.quality = min(item.quality, 50)
-            elif item.name == "Backstage passes to a TAFKAL80ETC concert":
-                if item.sell_in > 0:
-                    item.quality += 1
-                    if item.sell_in < 11:
-                        item.quality += 1
-                    if item.sell_in < 6:
-                        item.quality += 1
-                    item.quality = min(item.quality, 50)
-                else:
-                    item.quality -= item.quality
+            quality_increases = True if (item.name == self.aged_brie or item.name == self.backstage_passes) else False
+
+            if item.name == self.sulfuras:
+                continue
+            elif item.name == self.aged_brie:
+                self.__update_quality_aged_brie(item)
+            elif item.name == self.backstage_passes:
+                self.__update_quality_backstage_passes(item)
+            elif item.name == self.conjured:
+                self.__update_quality_conjured(item)
             else:
-                if item.sell_in > 0:
-                    item.quality -= 1
-                else:
-                    item.quality -= 2
-                item.quality = max(item.quality, 0)
+                self.__update_quality_regular(item)
+            
+            if quality_increases:
+                item.quality = min(item.quality, self.ITEM_MAX_QUALITY)
+            else:
+                item.quality = max(item.quality, self.ITEM_MIN_QUALITY)
+
             item.sell_in -= 1
 
 
