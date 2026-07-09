@@ -6,25 +6,46 @@ from gilded_rose import Item, GildedRose
 
 class GildedRoseTest(unittest.TestCase):
     
-    def test_regular_item_quality_decreases_before_sellin_date(self):
+    def test_regular_item_quality_decreases_before_sellin(self):
         items = [Item("regular", 1, 1)]
         gilded_rose = GildedRose(items)
         gilded_rose.update_quality()
         self.assertEqual(0, items[0].sell_in)
         self.assertEqual(0, items[0].quality)
 
-    def test_regular_item_quality_decreases_by_two_after_sellin_date(self):
+    def test_regular_item_quality_decreases_by_two_after_sellin(self):
         items = [Item("regular", 0, 2)]
         gilded_rose = GildedRose(items)
         gilded_rose.update_quality()
         self.assertEqual(-1, items[0].sell_in)
         self.assertEqual(0, items[0].quality)
     
-    def test_regular_item_quality_zero_remains_zero(self):
+    def test_regular_item_quality_zero_remains_zero_before_sellin(self):
+        items = [Item("regular", 2, 0)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(1, items[0].sell_in)
+        self.assertEqual(0, items[0].quality)
+    
+    def test_regular_item_quality_zero_remains_zero_after_sellin(self):
         items = [Item("regular", 0, 0)]
         gilded_rose = GildedRose(items)
         gilded_rose.update_quality()
         self.assertEqual(-1, items[0].sell_in)
+        self.assertEqual(0, items[0].quality)
+
+    def test_quality_is_capped_at_0_before_sellin(self):
+        items = [Item("regular", 1, 0)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(0, items[0].sell_in)
+        self.assertEqual(0, items[0].quality)
+    
+    def test_quality_is_capped_at_0_after_sellin(self):
+        items = [Item("regular", -1, 1)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(-2, items[0].sell_in)
         self.assertEqual(0, items[0].quality)
 
     def test_aged_bie_quality_increases_before_sellin(self):
