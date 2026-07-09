@@ -5,12 +5,88 @@ from gilded_rose import Item, GildedRose
 
 
 class GildedRoseTest(unittest.TestCase):
-    def test_foo(self):
-        items = [Item("foo", 0, 0)]
+    
+    def test_regular_item_quality_decrease_before_sellin(self):
+        items = [Item("regular", 1, 1)]
         gilded_rose = GildedRose(items)
         gilded_rose.update_quality()
-        self.assertEqual("fixme", items[0].name)
+        self.assertEqual(0, items[0].sell_in)
+        self.assertEqual(0, items[0].quality)
 
+    def test_regular_item_quality_decrease_after_sellin(self):
+        items = [Item("regular", 0, 2)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(-1, items[0].sell_in)
+        self.assertEqual(0, items[0].quality)
+    
+    def test_regular_item_quality_decrease_after_sellin_quality_zero(self):
+        items = [Item("regular", 0, 0)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(-1, items[0].sell_in)
+        self.assertEqual(0, items[0].quality)
+
+    def test_aged_brie_before_sellin(self):
+        items = [Item("Aged Brie", 1, 0)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(0, items[0].sell_in)
+        self.assertEqual(1, items[0].quality)
+
+    def test_aged_brie_after_sellin(self):
+        items = [Item("Aged Brie", -1, 0)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(-2, items[0].sell_in)
+        self.assertEqual(2, items[0].quality)
+    
+    def test_quality_capped(self):
+        items = [Item("Aged Brie", 1, 50)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(0, items[0].sell_in)
+        self.assertEqual(50, items[0].quality)
+    
+    def test_sulfuras(self):
+        items = [Item("Sulfuras, Hand of Ragnaros", 1, 50)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(1, items[0].sell_in)
+        self.assertEqual(50, items[0].quality)
+    
+    def test_backstage_more_then_ten_days(self):
+        items = [Item("Backstage passes to a TAFKAL80ETC concert", 11, 0)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(10, items[0].sell_in)
+        self.assertEqual(1, items[0].quality)
+
+    def test_backstage_less_then_ten_days_more_then_five(self):
+        items = [Item("Backstage passes to a TAFKAL80ETC concert", 10, 0)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(9, items[0].sell_in)
+        self.assertEqual(2, items[0].quality)
+
+    def test_backstage_less_then_five_days(self):
+        items = [Item("Backstage passes to a TAFKAL80ETC concert", 5, 0)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(4, items[0].sell_in)
+        self.assertEqual(3, items[0].quality)
+    
+    def test_backstage_after_concert(self):
+        items = [Item("Backstage passes to a TAFKAL80ETC concert", 0, 13)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(-1, items[0].sell_in)
+        self.assertEqual(0, items[0].quality)
+    
+    def test_repr(self):
+        item = Item("Aged Brie", 10, 20)
+        result = repr(item)
+        self.assertEqual("Aged Brie, 10, 20", result)
         
 if __name__ == '__main__':
     unittest.main()
