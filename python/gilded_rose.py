@@ -1,80 +1,43 @@
 # -*- coding: utf-8 -*-
+from enum import StrEnum
+from abc import ABC, abstractmethod
 
 class GildedRose(object):
-
-    ITEM_MAX_QUALITY = 50
-    ITEM_MIN_QUALITY = 0
-    FIRST_BATCH = 10
-    SECOND_BATCH = 5
-    aged_brie = "Aged Brie"
-    backstage_passes = "Backstage passes to a TAFKAL80ETC concert"
-    conjured = "Conjured"
-    sulfuras = "Sulfuras, Hand of Ragnaros"
-
     def __init__(self, items):
         self.items = items
-        for item in items:
-            self.__cap_quality(item)
-
-    def __cap_quality(self, item):
-        if item.quality > self.ITEM_MAX_QUALITY:
-            item.quality = self.ITEM_MAX_QUALITY
-        elif item.quality < self.ITEM_MIN_QUALITY:
-            item.quality = self.ITEM_MIN_QUALITY
-    
-    @staticmethod
-    def __update_quality_regular(item):
-        if item.sell_in > 0:
-            item.quality -= 1
-        else:
-            item.quality -= 2
-        
-    @staticmethod
-    def __update_quality_aged_brie(item):
-        if item.sell_in > 0:
-            item.quality += 1
-        elif item.sell_in <= 0:
-            item.quality += 2
-    
-    def __update_quality_backstage_passes(self, item):
-        if item.sell_in > 0:
-            if item.sell_in > self.FIRST_BATCH:
-                item.quality += 1
-            elif item.sell_in <= self.FIRST_BATCH and item.sell_in > self.SECOND_BATCH:
-                item.quality += 2
-            elif item.sell_in <= self.SECOND_BATCH:
-                item.quality += 3
-        else:
-            item.quality = 0
-
-    @staticmethod
-    def __update_quality_conjured(item):
-        if item.sell_in > 0:
-            item.quality -= 2
-        else:
-            item.quality -= 4
 
     def update_quality(self):
         for item in self.items:
+            item.cap_quality()
+            item.update_quality()
+            item.update_sellin()
 
-            match item.name:
-                case self.sulfuras:
-                    continue
-                case self.aged_brie:
-                    self.__update_quality_aged_brie(item)
-                case self.backstage_passes:
-                    self.__update_quality_backstage_passes(item)
-                case self.conjured:
-                    self.__update_quality_conjured(item)
-                case _:
-                    self.__update_quality_regular(item)
-            
-            self.__cap_quality(item)
+class Item(ABC):
 
-            item.sell_in -= 1
+    MAX_QUALITY = 50
+    MIN_QUALITY = 0
 
+    QUALITY_UNITS = {
+        "REGULAR": 1,
+        "CONJURED": 2,
+        "AGED_BRIE": 1,
+        "BACKSTAGE_FIRST_BATCH": 1,
+        "BACKSTAGE_SECOND_BATCH": 2,
+        "BACKSTAGE_THIRD_BATCH": 3
+    }
 
-class Item:
+    def __new__(cls, name, sell_in, quality):
+        if name == ItemNames.AGED_BRIE:
+            return super().__new__(AgedBrieItem)
+        elif name == ItemNames.BACKSTAGE_PASSES:
+            return super().__new__(BackstagePassItem)
+        elif name == ItemNames.SULFURAS:
+            return super().__new__(SulfurasItem)
+        elif name == ItemNames.CONJURED:
+            return super().__new__(ConjuredItem)
+        else:
+            return super().__new__(RegularItem)
+        
     def __init__(self, name, sell_in, quality):
         self.name = name
         self.sell_in = sell_in
@@ -82,3 +45,82 @@ class Item:
 
     def __repr__(self):
         return "%s, %s, %s" % (self.name, self.sell_in, self.quality)
+    
+    def cap_quality(self):
+        if self.quality > self.MAX_QUALITY:
+            self.quality = self.MAX_QUALITY
+        elif self.quality < self.MIN_QUALITY:
+            self.quality = self.MIN_QUALITY
+    
+    @abstractmethod
+    def update_quality(self):
+        pass
+
+    @abstractmethod
+    def update_sellin(self):
+        pass
+
+class RegularItem(Item):
+    def update_quality(self):
+        if self.sell_in > 0:
+            self.quality -= self.QUALITY_UNITS["REGULAR"]
+        else:
+            self.quality -= 2 * self.QUALITY_UNITS["REGULAR"]
+        Item.cap_quality(self)
+    
+    def update_sellin(self):
+        self.sell_in -= 1
+
+class AgedBrieItem(Item):
+    def update_quality(self):
+        if self.sell_in > 0:
+            self.quality += self.QUALITY_UNITS["AGED_BRIE"]
+        elif self.sell_in <= 0:
+            self.quality += 2 * self.QUALITY_UNITS["AGED_BRIE"]
+        Item.cap_quality(self)
+
+    def update_sellin(self):
+        self.sell_in -= 1
+
+class BackstagePassItem(Item):
+    FIRST_BATCH = 10
+    SECOND_BATCH = 5
+
+    def update_quality(self):
+        if self.sell_in > 0:
+            if self.sell_in > self.FIRST_BATCH:
+                self.quality += self.QUALITY_UNITS["BACKSTAGE_FIRST_BATCH"]
+            elif self.SECOND_BATCH < self.sell_in <= self.FIRST_BATCH:
+                self.quality += self.QUALITY_UNITS["BACKSTAGE_SECOND_BATCH"]
+            elif self.sell_in <= self.SECOND_BATCH:
+                self.quality += self.QUALITY_UNITS["BACKSTAGE_THIRD_BATCH"]
+        else:
+            self.quality = 0
+        Item.cap_quality(self)
+
+    def update_sellin(self):
+        self.sell_in -= 1
+
+class ConjuredItem(Item):
+    def update_quality(self):
+        if self.sell_in > 0:
+            self.quality -= self.QUALITY_UNITS["CONJURED"]
+        else:
+            self.quality -= 2 * self.QUALITY_UNITS["CONJURED"]
+        Item.cap_quality(self)
+    
+    def update_sellin(self):
+        self.sell_in -= 1
+
+class SulfurasItem(Item):
+    def update_quality(self):
+        return super().update_quality()
+    
+    def update_sellin(self):
+        return super().update_sellin()
+
+class ItemNames(StrEnum):
+    AGED_BRIE = "Aged Brie"
+    BACKSTAGE_PASSES = "Backstage passes to a TAFKAL80ETC concert"
+    CONJURED = "Conjured"
+    SULFURAS = "Sulfuras, Hand of Ragnaros"
